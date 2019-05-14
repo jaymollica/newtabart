@@ -1,0 +1,66 @@
+html, body, #objectContainer {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-weight: 200;
+}
+
+#objectContainer {
+  width: 100%;
+  padding-top: 5vh;
+  padding-bottom: 5vh;
+}
+
+a {
+  color: black;
+}
+
+.imgContainer {
+  text-align: center;
+  width: 60%;
+  height: 100%;
+  float:right;
+  img {
+    max-width: 100%;
+    max-height: 75vh;
+    //box-shadow: 5px 0px 25px grey;
+  }
+}
+
+.captionContainer {
+  width: 40%;
+  float:left;
+  height: 100%;
+  text-align: left;
+  font-size: 2rem;
+
+  p {
+    margin: 0;
+    padding-left: 24px;
+  }
+  .title {
+    color: black;
+    font-weight: 300;
+  }
+  .date {
+    color: #7a7a7a;
+  }
+  .artist,
+  .nationality {
+    font-size: 1rem;
+  }
+
+  .artist {
+    font-weight: 400;
+  }
+  .nationality {
+    font-weight: 300;
+  }
+
+  .sourceLink {
+    font-size: 1rem;
+    color: red;
+    text-decoration: underline;
+  }
+}
