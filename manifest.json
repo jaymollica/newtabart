@@ -1,9 +1,8 @@
 {
   "name": "New Tab Art",
   "version": "0.1",
-  "description": "See a new piece of art every time you open a new tab.",
+  "description": "See a new piece of art every time you open a tab.",
   "manifest_version": 2,
-  "icons": {},
   "background": {
     "scripts": ["background.js"],
     "matches": ["http://*/*", "https://*/*"],
@@ -22,6 +21,9 @@
   "chrome_url_overrides": {
     "newtab": "newpage.html"
   },
+  "icons": { "16": "icon16.png",
+           "48": "icon48.png",
+          "128": "icon128.png" },
   "permissions": ["tabs", "http://*/*", "https://*/*", "file:///*/*"],
   "web_accessible_resources": ["style.css"]
 }
