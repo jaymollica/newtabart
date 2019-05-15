@@ -39,6 +39,9 @@ a {
     margin: 0;
     padding-left: 24px;
   }
+  p:not(.topLine) {
+    line-height: 1rem;
+  }
   .title {
     color: black;
     font-weight: 300;
@@ -62,5 +65,19 @@ a {
     font-size: 1rem;
     color: red;
     text-decoration: underline;
+    word-wrap: break-word;
   }
+
+  .sourceLinkContainer,
+  .descriptionContainer {
+    margin-top:24px;
+  }
+
+  .description {
+    font-size: 1rem;
+    a {
+      color: red;
+    }
+  }
+
 }

@@ -31,6 +31,8 @@ a {
   .captionContainer p {
     margin: 0;
     padding-left: 24px; }
+  .captionContainer p:not(.topLine) {
+    line-height: 1rem; }
   .captionContainer .title {
     color: black;
     font-weight: 300; }
@@ -46,6 +48,14 @@ a {
   .captionContainer .sourceLink {
     font-size: 1rem;
     color: red;
-    text-decoration: underline; }
+    text-decoration: underline;
+    word-wrap: break-word; }
+  .captionContainer .sourceLinkContainer,
+  .captionContainer .descriptionContainer {
+    margin-top: 24px; }
+  .captionContainer .description {
+    font-size: 1rem; }
+    .captionContainer .description a {
+      color: red; }
 
 /*# sourceMappingURL=style.css.map */

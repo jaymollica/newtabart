@@ -69,15 +69,15 @@ $(document).ready(function() {
 
     // create caption element
     var captionContainer = $('<div class="captionContainer">');
-    var topLine = $('<p><span class="title">'+title+'</span><span class="date">'+objectDate+'</span></p>').appendTo(captionContainer);
+    var topLine = $('<p class="topLine"><span class="title">'+title+'</span><span class="date">'+objectDate+'</span></p>').appendTo(captionContainer);
     var bottomLine = $('<p><span class="artist">'+artistCulture+'</span> <span class="nationality">'+nationality+'</span></p>').appendTo(captionContainer);
 
-    var pathContainer = $('<p><a class="sourceLink" href="'+data.objectURL+'">'+data.objectURL+'</a></p>').appendTo(captionContainer);
+    var pathContainer = $('<p class="sourceLinkContainer"><a class="sourceLink" href="'+data.objectURL+'">'+data.objectURL+'</a></p>').appendTo(captionContainer);
     // append caption
     $(captionContainer).appendTo(objectLink);
 
-    var description = $('<p class="description">');
-    var descText = 'All artworks are sourced from the <a href="https://metmuseum.github.io/">Metropolitian Museum of Art Collection API</a>. This browser extenstion is not affialiated with the museum. The source code for the extension can be found on <a href="">github</a>.'
+    var description = $('<p class="descriptionContainer"><span class="description">All artworks are sourced from the <a href="https://metmuseum.github.io/">Metropolitian Museum of Art Collection API</a>. This browser extenstion is not affialiated with the museum. The source code for the extension can be found on <a href="https://github.com/jaymollica/newtabart">github</a>.</span></p>');
+    $(description).appendTo(captionContainer);
 
     // add it all to the page
     $(objectLink).appendTo('#objectContainer');
