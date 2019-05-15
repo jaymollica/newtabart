@@ -1,7 +1,7 @@
 {
   "name": "New Tab Art",
   "short_name": "New Art Tab",
-  "version": "0.3",
+  "version": "0.2",
   "description": "See a new piece of art every time you open a tab.",
   "manifest_version": 2,
   "background": {
@@ -25,6 +25,6 @@
   "icons": { "16": "icon16.png",
            "48": "icon48.png",
           "128": "icon128.png" },
-  "permissions": ["tabs"],
+  "permissions": ["activeTab"],
   "web_accessible_resources": ["style.css"]
 }
