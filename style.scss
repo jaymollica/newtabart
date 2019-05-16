@@ -68,13 +68,23 @@ a {
     word-wrap: break-word;
   }
 
+  .objectDescriptionContainer,
   .sourceLinkContainer,
   .descriptionContainer {
     margin-top:24px;
   }
 
-  .description {
+  .objectDescription {
     font-size: 1rem;
+    a {
+      color: red;
+    }
+  }
+
+  .description {
+    font-size: .8rem;
+    line-height: .8rem;
+    color: #7a7a7a;
     a {
       color: red;
     }

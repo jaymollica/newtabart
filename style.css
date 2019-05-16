@@ -50,11 +50,18 @@ a {
     color: red;
     text-decoration: underline;
     word-wrap: break-word; }
+  .captionContainer .objectDescriptionContainer,
   .captionContainer .sourceLinkContainer,
   .captionContainer .descriptionContainer {
     margin-top: 24px; }
-  .captionContainer .description {
+  .captionContainer .objectDescription {
     font-size: 1rem; }
+    .captionContainer .objectDescription a {
+      color: red; }
+  .captionContainer .description {
+    font-size: .8rem;
+    line-height: .8rem;
+    color: #7a7a7a; }
     .captionContainer .description a {
       color: red; }
 
