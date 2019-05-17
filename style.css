@@ -10,6 +10,10 @@ html, body, #objectContainer {
   padding-top: 5vh;
   padding-bottom: 5vh; }
 
+.objectLink {
+  padding-left: 24px;
+  padding-right: 24px; }
+
 a {
   color: black; }
 
@@ -29,8 +33,7 @@ a {
   text-align: left;
   font-size: 2rem; }
   .captionContainer p {
-    margin: 0;
-    padding-left: 24px; }
+    margin: 0; }
   .captionContainer p:not(.topLine) {
     line-height: 1rem; }
   .captionContainer .title {
@@ -60,7 +63,7 @@ a {
       color: red; }
   .captionContainer .description {
     font-size: .8rem;
-    line-height: .8rem;
+    line-height: .65rem;
     color: #7a7a7a; }
     .captionContainer .description a {
       color: red; }

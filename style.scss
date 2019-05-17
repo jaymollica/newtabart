@@ -12,6 +12,11 @@ html, body, #objectContainer {
   padding-bottom: 5vh;
 }
 
+.objectLink {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 a {
   color: black;
 }
@@ -37,7 +42,6 @@ a {
 
   p {
     margin: 0;
-    padding-left: 24px;
   }
   p:not(.topLine) {
     line-height: 1rem;
@@ -83,7 +87,7 @@ a {
 
   .description {
     font-size: .8rem;
-    line-height: .8rem;
+    line-height: .65rem;
     color: #7a7a7a;
     a {
       color: red;

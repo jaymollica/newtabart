@@ -150,7 +150,12 @@ $(document).ready(function() {
 
     // create image element
     var imgContainer = $('<div class="imgContainer">');
-    var objImage = $('<img src="'+imgPath+'" />').appendTo(imgContainer);
+    preloadImg(imgPath);
+    
+    $('<img style="display: none;" src="'+imgPath+'">').on('load', function(){
+      // hide/remove the loading image
+      $(this).appendTo(imgContainer).fadeIn(1000);
+    });
     // append image
     $(imgContainer).appendTo(objectLink); 
 
@@ -173,6 +178,11 @@ $(document).ready(function() {
     // add it all to the page
     $(objectLink).appendTo('#objectContainer');
 
+  }
+
+  function preloadImg(url) {
+    (new Image()).src = url;
+    //return img;
   }
 
 });
