@@ -1,17 +1,9 @@
 {
   "name": "New Tab Art",
   "short_name": "New Art Tab",
-  "version": "0.3",
+  "version": "0.4",
   "description": "See a new piece of art every time you open a tab.",
-  "manifest_version": 2,
-  "background": {
-    "scripts": ["background.js"],
-    "matches": ["http://*/*", "https://*/*"],
-    "persistent": false
-  },
-  "browser_action": {
-    "default_title":""
-  },
+  "manifest_version": 3,
    "content_scripts": [
     {
         "matches": ["file:///*/*"],
@@ -26,5 +18,16 @@
            "48": "icon48.png",
           "128": "icon128.png" },
   "permissions": ["activeTab"],
-  "web_accessible_resources": ["style.css"]
+  "web_accessible_resources": [
+    {
+      "resources" : [
+        "style.css",
+        "background.js"
+      ],
+      "matches": [
+        "*://*/*"
+      ]
+    }
+    
+  ]
 }

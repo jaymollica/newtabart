@@ -1,5 +1,52 @@
 $(document).ready(function() {
 
+  var aic = {
+    museum: "Art Institute of Chicago",
+    shortname: "aic",
+    endPoint: "https://api.artic.edu/api/v1/artworks/",
+    docs: "https://api.artic.edu/docs/",
+    maxInt: "125841",
+    maxPage: "10487",
+
+    //https://www.artic.edu/iiif/2/2d484387-2509-5e8e-2c43-22f9981972eb/full/843,/0/default.jpg
+
+    returnData: function(data) {
+
+      if (data.length == 0 || data.data.length == 0) {
+        return data.imgPath = '';
+      }
+
+      if(data.data[0].image_id) {
+
+        var img_base_url = data.config.iiif_url;
+        var img_id = data.data[0].image_id;
+        var img_url = img_base_url+"/"+img_id+"/full/843,/0/default.jpg"
+
+      }
+      else {
+        img_url = null;
+      }
+      
+      var aicData = {
+        imgPath: img_url || '',
+        artistCulture: data.data[0].artist_display || '',
+        title: data.data[0].title,
+        nationality: data.data[0].place_of_origin || '',
+        objectDate: data.data[0].date_display || '',
+        objectURL: data.data[0].api_link,
+        culture: data.data[0].category_titles || '',
+        description: data.data[0].description || '',
+        museumName: this.museum,
+        docs: this.docs,
+      };
+
+      return aicData;
+
+
+    }
+
+  };
+
   var cma = {
     museum:"Cleveland Museum of Art",
     shortname:"cma",
@@ -69,20 +116,27 @@ $(document).ready(function() {
     }
   };
 
-  var museums = {"met": met, "cma": cma};
+  var museums = {"aic": aic, "met": met, "cma": cma};
+  //var museums = {"aic": aic};
+
   var randomProperty = function (obj) {
     var keys = Object.keys(obj)
     return obj[keys[ keys.length * Math.random() << 0]];
   };
-  var randMuseum = randomProperty(museums);
-  
+  //var randMuseum = randomProperty(museums);
+  var randMuseum = randomProperty(museums);  
   
   function getRandomInt(museum) {
+    if(museum.shortname == "aic") {
+      var randInt = Math.floor(Math.random() * Math.floor(museum.maxInt));
+      var objURL = museum.endPoint+"?limit=1&page="+randInt;
+      //objectURL = "https://api.artic.edu/api/v1/artworks/27992";
+    }
     if (museum.shortname == "cma") {
       var randInt = Math.floor(Math.random() * Math.floor(museum.maxInt));
       var objURL = museum.endPoint+"?has_image=1&limit=1&skip="+randInt;
     }
-    else {
+    if (museum.shortname == "met") {
       var randInt = Math.floor(Math.random() * Math.floor(museum.maxInt));
       var objURL = museum.endPoint+randInt;
     }
@@ -132,6 +186,7 @@ $(document).ready(function() {
     var culture = data.culture;
     var docs = data.docs;
     var museumName = data.museumName;
+    var objDescription = data.description || "";
 
     if (objectDate === '') {
       objectDate = '';
@@ -168,8 +223,19 @@ $(document).ready(function() {
     // append caption
     $(captionContainer).appendTo(objectLink);
 
-    if(data.description) {
-      $('<p class="objectDescriptionContainer"><span class="objectDescription">'+data.description+'</span></p>').appendTo(captionContainer);
+    if(objDescription) {
+      console.log(objDescription);
+      var objDescContainter = $('<p class="objectDescriptionContainer"></p>');
+      var objDescSpan = $('<span class="objectDescription"></span>');
+
+      $(objDescSpan).html(objDescription);
+
+      $(objDescSpan).appendTo(objDescContainter);
+
+
+      console.log(objDescContainter);
+
+      $(objDescContainter).appendTo(captionContainer);
     }
 
     var description = $('<p class="descriptionContainer"><span class="description">This artwork is sourced from the <a href="'+docs+'">'+museumName+' Collection API</a>. This browser extenstion is not affialiated with the museum. The source code for the extension can be found on <a href="https://github.com/jaymollica/newtabart">github</a>.</span></p>');
