@@ -1,9 +1,32 @@
+:root {
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --text-secondary: #7a7a7a;
+  --accent-color: #ff4444;
+  --accent-hover: #cc3333;
+  --accent-active: #aa2222;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --accent-color: #ff6666;
+    --accent-hover: #ff8888;
+    --accent-active: #ff4444;
+  }
+}
+
 html, body, #objectContainer {
   height: 100%;
   width: 100%;
   overflow-x: hidden;
   font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-  font-weight: 200; }
+  font-weight: 200;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease; }
 
 #objectContainer {
   width: 100%;
@@ -15,7 +38,7 @@ html, body, #objectContainer {
   padding-right: 24px; }
 
 a {
-  color: black; }
+  color: var(--text-color); }
 
 .imgContainer {
   text-align: center;
@@ -37,10 +60,10 @@ a {
   .captionContainer p:not(.topLine) {
     line-height: 1rem; }
   .captionContainer .title {
-    color: black;
+    color: var(--text-color);
     font-weight: 300; }
   .captionContainer .date {
-    color: #7a7a7a; }
+    color: var(--text-secondary); }
   .captionContainer .artist,
   .captionContainer .nationality {
     font-size: 1rem; }
@@ -50,7 +73,7 @@ a {
     font-weight: 300; }
   .captionContainer .sourceLink {
     font-size: 1rem;
-    color: red;
+    color: var(--accent-color);
     text-decoration: underline;
     word-wrap: break-word; }
   .captionContainer .objectDescriptionContainer,
@@ -60,19 +83,19 @@ a {
   .captionContainer .objectDescription {
     font-size: 1rem; }
     .captionContainer .objectDescription a {
-      color: red; }
+      color: var(--accent-color); }
   .captionContainer .description {
     font-size: .8rem;
     line-height: .65rem;
-    color: #7a7a7a; }
+    color: var(--text-secondary); }
     .captionContainer .description a {
-      color: red; }
+      color: var(--accent-color); }
 
 /* Postcard Button Styling */
 .captionContainer .postcardContainer {
   margin-top: 16px; }
   .captionContainer .postcardContainer .postcardButton {
-    background-color: #ff4444;
+    background-color: var(--accent-color);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -83,15 +106,15 @@ a {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     transition: background-color 0.2s ease; }
     .captionContainer .postcardContainer .postcardButton:hover {
-      background-color: #cc3333; }
+      background-color: var(--accent-hover); }
     .captionContainer .postcardContainer .postcardButton:active {
-      background-color: #aa2222; }
+      background-color: var(--accent-active); }
 
 #settingsLink {
   display: inline-block;
   margin-top: 24px;
   font-size: 0.8rem;
-  color: red;
+  color: var(--accent-color);
   text-decoration: none;
   opacity: 0.8;
   transition: opacity 0.2s ease;

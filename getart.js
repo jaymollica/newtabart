@@ -39,23 +39,34 @@ class MuseumArtApp {
                 enableWikimedia: false
             };
 
-            chrome.storage.local.get(defaultSettings, (result) => {
-                this.activeMuseums = {};
-                if (result.enableWhitney) this.activeMuseums.wht = this.museums.wht;
-                if (result.enableAIC) this.activeMuseums.aic = this.museums.aic;
-                if (result.enableCleveland) this.activeMuseums.cma = this.museums.cma;
-                if (result.enableMet) this.activeMuseums.met = this.museums.met;
-                if (result.enableWikimedia) this.activeMuseums.wmc = this.museums.wmc;
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                chrome.storage.local.get(defaultSettings, (result) => {
+                    this.activeMuseums = {};
+                    if (result.enableWhitney)
+                        this.activeMuseums.wht = this.museums.wht;
+                    if (result.enableAIC)
+                        this.activeMuseums.aic = this.museums.aic;
+                    if (result.enableCleveland)
+                        this.activeMuseums.cma = this.museums.cma;
+                    if (result.enableMet)
+                        this.activeMuseums.met = this.museums.met;
+                    if (result.enableWikimedia)
+                        this.activeMuseums.wmc = this.museums.wmc;
+                    resolve();
+                });
+            } else {
+                this.activeMuseums = {
+                    ...this.museums
+                };
                 resolve();
-            });
+            }
         });
     }
 
     getRandomMuseum() {
         const keys = Object.keys(this.activeMuseums);
         const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        return this.activeMuseums[randomKey];
-    }
+        return this.activeMuseums[randomKey];    }
 
     async loadRandomArtwork() {
         const museum = this.getRandomMuseum();
