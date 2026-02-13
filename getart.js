@@ -16,16 +16,22 @@ class MuseumArtApp {
             met: this.museums.met
         };
         
+        this.maxArtworkRetries = 5;
+        this.requestTimeoutMs = 4000;
+        this.prefetchStorageKey = 'museumArtPrefetch';
+        this.lastArtworkStorageKey = 'museumArtLastArtwork';
         this.maxHistoryItems = 10;
-        this.storageKey = 'museumArtHistory';
+        this.historyStorageKey = 'museumArtHistory';
+        this.viewHistory = [];
+        this.isPrefetching = false;
         this.loadHistory();
         this.init();
     }
 
     async init() {
         await this.loadSettings();
-        $(document).ready(() => {
-            this.loadRandomArtwork();
+        document.addEventListener('DOMContentLoaded', () => {
+            this.bootstrapArtworkFlow();
         });
     }
 
@@ -39,6 +45,17 @@ class MuseumArtApp {
                 enableWikimedia: false
             };
 
+            if (!this.hasChromeStorage()) {
+                this.activeMuseums = {
+                    wht: this.museums.wht,
+                    aic: this.museums.aic,
+                    cma: this.museums.cma,
+                    met: this.museums.met
+                };
+                resolve();
+                return;
+            }
+
             const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
             browserAPI.storage.local.get(defaultSettings, (result) => {
                 this.activeMuseums = {};
@@ -47,6 +64,9 @@ class MuseumArtApp {
                 if (result.enableCleveland) this.activeMuseums.cma = this.museums.cma;
                 if (result.enableMet) this.activeMuseums.met = this.museums.met;
                 if (result.enableWikimedia) this.activeMuseums.wmc = this.museums.wmc;
+                if (Object.keys(this.activeMuseums).length === 0) {
+                    this.activeMuseums.met = this.museums.met;
+                }
                 resolve();
             });
         });
@@ -54,28 +74,76 @@ class MuseumArtApp {
 
     getRandomMuseum() {
         const keys = Object.keys(this.activeMuseums);
+        if (keys.length === 0) {
+            return this.museums.met;
+        }
         const randomKey = keys[Math.floor(Math.random() * keys.length)];
         return this.activeMuseums[randomKey];
     }
 
+    async bootstrapArtworkFlow() {
+        this.showLoadingState();
+
+        const prefetchedArtwork = await this.takePrefetchedArtwork();
+        if (this.isValidArtwork(prefetchedArtwork)) {
+            this.displayArtwork(prefetchedArtwork);
+            this.prefetchArtworkInBackground();
+            return;
+        }
+
+        const lastArtwork = await this.getFromStorage(this.lastArtworkStorageKey);
+        if (this.isValidArtwork(lastArtwork)) {
+            this.displayArtwork(lastArtwork, { saveToHistory: false, saveAsLast: false });
+        }
+
+        const freshArtwork = await this.getRandomArtworkData();
+        if (this.isValidArtwork(freshArtwork)) {
+            this.displayArtwork(freshArtwork);
+            this.prefetchArtworkInBackground();
+            return;
+        }
+
+        if (!this.isValidArtwork(lastArtwork)) {
+            this.showErrorState('Unable to load artwork right now. Try again in a moment.');
+        } else {
+            this.prefetchArtworkInBackground();
+        }
+    }
+
     async loadRandomArtwork() {
+        const artworkData = await this.getRandomArtworkData();
+        if (!this.isValidArtwork(artworkData)) {
+            this.showErrorState('Unable to load artwork right now. Try again in a moment.');
+            return;
+        }
+        this.displayArtwork(artworkData);
+        this.prefetchArtworkInBackground();
+    }
+
+    async getRandomArtworkData(maxAttempts = this.maxArtworkRetries) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const museum = this.getRandomMuseum();
         try {
             const artworkData = await this.fetchRandomArtwork(museum);
-            if (!artworkData || !artworkData.imgPath) {
-                return this.loadRandomArtwork();
+                if (this.isValidArtwork(artworkData)) {
+                    return artworkData;
             }
-            this.displayArtwork(artworkData);
         } catch (error) {
-            console.error('Error loading artwork:', error);
-            this.loadRandomArtwork();
+                console.error(`Attempt ${attempt} failed for ${museum.museum}:`, error);
+            }
+            await this.sleep(Math.min(150 * attempt, 600));
         }
+        return null;
+    }
+
+    isValidArtwork(artworkData) {
+        return Boolean(artworkData && artworkData.imgPath);
     }
 
     async fetchRandomArtwork(museum) {
         const url = museum.getRandomUrl();
         try {
-            const response = await fetch(url);
+            const response = await this.fetchWithTimeout(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -87,14 +155,74 @@ class MuseumArtApp {
         }
     }
 
-    displayArtwork(data) {
+    async fetchWithTimeout(url, timeoutMs = this.requestTimeoutMs) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, {
+                signal: controller.signal,
+                cache: 'no-store'
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    async prefetchArtworkInBackground() {
+        if (this.isPrefetching) {
+            return;
+        }
+        this.isPrefetching = true;
+        try {
+            const nextArtwork = await this.getRandomArtworkData(3);
+            if (this.isValidArtwork(nextArtwork)) {
+                await this.setInStorage(this.prefetchStorageKey, nextArtwork);
+            }
+        } catch (error) {
+            console.error('Error prefetching artwork:', error);
+        } finally {
+            this.isPrefetching = false;
+        }
+    }
+
+    async takePrefetchedArtwork() {
+        const prefetchedArtwork = await this.getFromStorage(this.prefetchStorageKey);
+        await this.removeFromStorage(this.prefetchStorageKey);
+        return prefetchedArtwork;
+    }
+
+    showLoadingState() {
+        $('#objectContainer').html(`
+            <div class="loadingState">
+                <div class="loadingSpinner"></div>
+                <p>Loading a new artwork...</p>
+            </div>
+        `);
+    }
+
+    showErrorState(message) {
+        $('#objectContainer').html(`
+            <div class="loadingState">
+                <p>${message}</p>
+                <p><a href="options.html" id="settingsLink">Settings and history</a></p>
+            </div>
+        `);
+    }
+
+    displayArtwork(data, options = {}) {
+        const { saveToHistory = true, saveAsLast = true } = options;
         const {
             imgPath, artistCulture, title, objectDate, nationality, culture,
             objectURL, description, museumName, docs, is_public_domain,
             museumShortcode, objectId
         } = data;
 
+        if (saveToHistory) {
         this.addToHistory(data);
+        }
+        if (saveAsLast) {
+            this.setInStorage(this.lastArtworkStorageKey, data);
+        }
         $('#objectContainer').empty();
 
         const objectLink = $('<div class="objectLink">');
@@ -121,6 +249,9 @@ class MuseumArtApp {
             $(`<img src="${imgPath}" style="display: none;">`)
                 .appendTo(container)
                 .fadeIn(1000);
+        };
+        img.onerror = () => {
+            $('<p class="description">Unable to load image.</p>').appendTo(container);
         };
         img.src = imgPath;
     }
@@ -185,6 +316,7 @@ class MuseumArtApp {
             objectId: data.objectId
         };
 
+        this.viewHistory = Array.isArray(this.viewHistory) ? this.viewHistory : [];
         this.viewHistory = this.viewHistory.filter(item => item.objectURL !== historyItem.objectURL);
         this.viewHistory.unshift(historyItem);
 
@@ -197,13 +329,12 @@ class MuseumArtApp {
 
     loadHistory() {
         try {
-            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
-            if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
-                browserAPI.storage.local.get([this.storageKey], (result) => {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                chrome.storage.local.get([this.storageKey], (result) => {
                     this.viewHistory = result[this.storageKey] || [];
                 });
             } else {
-                const saved = localStorage.getItem(this.storageKey);
+                const saved = localStorage.getItem(this.historyStorageKey);
                 this.viewHistory = saved ? JSON.parse(saved) : [];
             }
         } catch (error) {
@@ -214,17 +345,59 @@ class MuseumArtApp {
 
     saveHistory() {
         try {
-            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
-            if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
                 const data = {};
                 data[this.storageKey] = this.viewHistory;
-                browserAPI.storage.local.set(data);
+                chrome.storage.local.set(data);
             } else {
-                localStorage.setItem(this.storageKey, JSON.stringify(this.viewHistory));
+                localStorage.setItem(this.historyStorageKey, JSON.stringify(this.viewHistory));
             }
         } catch (error) {
             console.error('Error saving history to storage:', error);
         }
+    }
+
+    hasChromeStorage() {
+        return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
+    }
+
+    async getFromStorage(key) {
+        if (!this.hasChromeStorage()) {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : null;
+        }
+
+        return new Promise((resolve) => {
+            chrome.storage.local.get([key], (result) => {
+                resolve(result[key] || null);
+            });
+        });
+    }
+
+    async setInStorage(key, value) {
+        if (!this.hasChromeStorage()) {
+            localStorage.setItem(key, JSON.stringify(value));
+            return;
+        }
+
+        return new Promise((resolve) => {
+            chrome.storage.local.set({ [key]: value }, resolve);
+        });
+    }
+
+    async removeFromStorage(key) {
+        if (!this.hasChromeStorage()) {
+            localStorage.removeItem(key);
+            return;
+        }
+
+        return new Promise((resolve) => {
+            chrome.storage.local.remove([key], resolve);
+        });
+    }
+
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
 
@@ -281,14 +454,21 @@ class WhitneyMuseum extends Museum {
     }
 
     async getArtist(id) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
         try {
-            const response = await fetch(`https://whitney.org/api/artists/${id}`);
+            const response = await fetch(`https://whitney.org/api/artists/${id}`, {
+                signal: controller.signal,
+                cache: 'no-store'
+            });
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
             return data.data?.attributes?.display_name || '';
         } catch (error) {
             console.error(`Error fetching artist ${id}:`, error);
             return '';
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 }

@@ -4,13 +4,16 @@
       <title>New Tab New Art: See a new piece of art every time you open a tab.</title>
       <meta charset="UTF-8">
       <script src="browser-polyfill.js"></script>
-      <script src="jquery-3.4.1.min.js"></script>
-      <script src="getart.js"></script>
       <link rel="stylesheet" type="text/css" href="style.css">
+      <script defer src="jquery-3.4.1.min.js"></script>
+      <script defer src="getart.js"></script>
     </head>
     <body>
       <div id="objectContainer">
-        
+        <div class="loadingState">
+          <div class="loadingSpinner"></div>
+          <p>Loading a new artwork...</p>
+        </div>
       </div>
     </body>
   </html>
