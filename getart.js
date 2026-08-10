@@ -337,6 +337,7 @@ class MuseumArtApp {
             artist: data.artistCulture || data.culture,
             museum: data.museumName,
             objectURL: data.objectURL,
+            imgPath: data.imgPath,
             timestamp: new Date().toLocaleString(),
             is_public_domain: data.is_public_domain,
             museumShortcode: data.museumShortcode,

@@ -141,7 +141,23 @@ function displayHistory(history) {
     
     history.forEach((item) => {
         const row = document.createElement('tr');
-        
+
+        // Thumbnail cell
+        const thumbCell = document.createElement('td');
+        if (item.imgPath) {
+            const thumbLink = document.createElement('a');
+            thumbLink.href = item.objectURL;
+            thumbLink.target = '_blank';
+            thumbLink.rel = 'noopener';
+            const thumb = document.createElement('img');
+            thumb.className = 'fav-thumb';
+            thumb.src = item.imgPath;
+            thumb.alt = item.title || '';
+            thumb.loading = 'lazy';
+            thumbLink.appendChild(thumb);
+            thumbCell.appendChild(thumbLink);
+        }
+
         // Title cell
         const titleCell = document.createElement('td');
         const titleLink = document.createElement('a');
@@ -190,12 +206,13 @@ function displayHistory(history) {
             actionCell.style.color = '#ccc';
         }
         
+        row.appendChild(thumbCell);
         row.appendChild(titleCell);
         row.appendChild(artistCell);
         row.appendChild(museumCell);
         row.appendChild(timeCell);
         row.appendChild(actionCell);
-        
+
         historyTableBody.appendChild(row);
     });
 }
