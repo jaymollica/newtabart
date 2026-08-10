@@ -1,7 +1,9 @@
 // Default settings
 const defaultSettings = {
     enableWhitney: true,
-    enableAIC: true,
+    // Off by default: AIC images are currently blocked by Cloudflare and often
+    // fail to load (art-institute-of-chicago/data-aggregator#157).
+    enableAIC: false,
     enableCleveland: true,
     enableMet: true,
     enableWikimedia: false,
@@ -198,6 +200,117 @@ function displayHistory(history) {
     });
 }
 
+// Favorites Management
+let lastFavoritesJSON = null;
+
+function loadFavorites() {
+    browserAPI.storage.local.get(['museumArtFavorites'], (result) => {
+        displayFavorites(result.museumArtFavorites || []);
+    });
+}
+
+function displayFavorites(favorites) {
+    // Skip rebuilding (and re-fetching thumbnails) when nothing changed.
+    const json = JSON.stringify(favorites);
+    if (json === lastFavoritesJSON) return;
+    lastFavoritesJSON = json;
+
+    const emptyFavorites = document.getElementById('emptyFavorites');
+    const favoritesTable = document.getElementById('favoritesTable');
+    const favoritesTableBody = document.getElementById('favoritesTableBody');
+
+    if (favorites.length === 0) {
+        emptyFavorites.style.display = 'block';
+        favoritesTable.style.display = 'none';
+        favoritesTableBody.innerHTML = '';
+        return;
+    }
+
+    emptyFavorites.style.display = 'none';
+    favoritesTable.style.display = 'table';
+    favoritesTableBody.innerHTML = '';
+
+    favorites.forEach((item) => {
+        const row = document.createElement('tr');
+
+        // Thumbnail cell
+        const thumbCell = document.createElement('td');
+        if (item.imgPath) {
+            const thumbLink = document.createElement('a');
+            thumbLink.href = item.objectURL;
+            thumbLink.target = '_blank';
+            thumbLink.rel = 'noopener';
+            const thumb = document.createElement('img');
+            thumb.className = 'fav-thumb';
+            thumb.src = item.imgPath;
+            thumb.alt = item.title || '';
+            thumb.loading = 'lazy';
+            thumbLink.appendChild(thumb);
+            thumbCell.appendChild(thumbLink);
+        }
+
+        // Title cell
+        const titleCell = document.createElement('td');
+        const titleLink = document.createElement('a');
+        titleLink.href = item.objectURL;
+        titleLink.target = '_blank';
+        titleLink.rel = 'noopener';
+        titleLink.className = 'history-link';
+        titleLink.textContent = item.title;
+        titleCell.appendChild(titleLink);
+        if (item.is_public_domain) {
+            const pdBadge = document.createElement('span');
+            pdBadge.className = 'pd-badge';
+            pdBadge.textContent = 'PD';
+            pdBadge.title = 'Public Domain';
+            titleCell.appendChild(pdBadge);
+        }
+
+        // Artist cell
+        const artistCell = document.createElement('td');
+        artistCell.textContent = item.artist || 'Unknown';
+
+        // Museum cell
+        const museumCell = document.createElement('td');
+        museumCell.textContent = item.museum;
+
+        // Action cell (postcard + remove)
+        const actionCell = document.createElement('td');
+        if (item.is_public_domain && item.museumShortcode && item.objectId) {
+            const postcardBtn = document.createElement('button');
+            postcardBtn.className = 'postcard-button';
+            postcardBtn.textContent = 'Create Postcard';
+            postcardBtn.addEventListener('click', () => {
+                const postcardUrl = `https://sweetpost.art/create?museum=${item.museumShortcode}&object_id=${item.objectId}`;
+                window.open(postcardUrl, '_blank');
+            });
+            actionCell.appendChild(postcardBtn);
+        }
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-button';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => removeFavorite(item.objectURL));
+        actionCell.appendChild(removeBtn);
+
+        row.appendChild(thumbCell);
+        row.appendChild(titleCell);
+        row.appendChild(artistCell);
+        row.appendChild(museumCell);
+        row.appendChild(actionCell);
+
+        favoritesTableBody.appendChild(row);
+    });
+}
+
+function removeFavorite(objectURL) {
+    browserAPI.storage.local.get(['museumArtFavorites'], (result) => {
+        const favorites = (result.museumArtFavorites || []).filter(item => item.objectURL !== objectURL);
+        browserAPI.storage.local.set({ museumArtFavorites: favorites }, () => {
+            loadFavorites();
+        });
+    });
+}
+
 // Clear history functionality
 document.getElementById('clearHistoryBtn').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear your viewing history?')) {
@@ -211,9 +324,13 @@ document.getElementById('clearHistoryBtn').addEventListener('click', () => {
 // Load history on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
-    
-    // Refresh history every few seconds in case it's updated from another tab
-    setInterval(loadHistory, 3000);
+    loadFavorites();
+
+    // Refresh every few seconds in case they're updated from another tab
+    setInterval(() => {
+        loadHistory();
+        loadFavorites();
+    }, 3000);
     
     // Listen for system dark mode preference changes
     if (window.matchMedia) {

@@ -18,7 +18,10 @@ class MuseumArtApp {
         
         this.maxHistoryItems = 10;
         this.storageKey = 'museumArtHistory';
+        this.favoritesKey = 'museumArtFavorites';
+        this.maxAttempts = 8;
         this.loadHistory();
+        this.loadFavorites();
         this.init();
     }
 
@@ -34,7 +37,10 @@ class MuseumArtApp {
         return new Promise((resolve) => {
             const defaultSettings = {
                 enableWhitney: true,
-                enableAIC: true,
+                // AIC images are currently gated by Cloudflare and often fail to
+                // load (art-institute-of-chicago/data-aggregator#157), so it's
+                // off by default until that's resolved upstream.
+                enableAIC: false,
                 enableCleveland: true,
                 enableMet: true,
                 enableWikimedia: false,
@@ -94,18 +100,58 @@ class MuseumArtApp {
         return this.activeMuseums[randomKey];
     }
 
-    async loadRandomArtwork() {
+    async loadRandomArtwork(attempt = 1) {
+        if (attempt > this.maxAttempts) {
+            this.showLoadError();
+            return;
+        }
         const museum = this.getRandomMuseum();
         try {
             const artworkData = await this.fetchRandomArtwork(museum);
             if (!artworkData || !artworkData.imgPath) {
-                return this.loadRandomArtwork();
+                return this.loadRandomArtwork(attempt + 1);
+            }
+            // Confirm the image actually loads before committing to it, so a
+            // dead/blocked URL retries instead of leaving a blank tab.
+            const loaded = await this.preloadImage(artworkData.imgPath);
+            if (!loaded) {
+                return this.loadRandomArtwork(attempt + 1);
             }
             this.displayArtwork(artworkData);
         } catch (error) {
             console.error('Error loading artwork:', error);
-            this.loadRandomArtwork();
+            this.loadRandomArtwork(attempt + 1);
         }
+    }
+
+    preloadImage(url) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => {
+                console.warn('Image failed to load:', url);
+                resolve(false);
+            };
+            img.src = url;
+        });
+    }
+
+    showLoadError() {
+        const objectLink = $('<div class="objectLink">');
+        const caption = $('<div class="captionContainer">');
+
+        $('<p class="topLine"><span class="title">No artwork to show</span></p>')
+            .appendTo(caption);
+        $('<p class="descriptionContainer"><span class="description">' +
+          'The selected art source couldn\'t be reached — it may be temporarily ' +
+          'unavailable. Try enabling more sources below, then open a new tab.' +
+          '</span></p>').appendTo(caption);
+
+        $('<a class="errorSettingsButton" href="options.html">⚙ Open Settings</a>')
+            .appendTo(caption);
+
+        caption.appendTo(objectLink);
+        $('#objectContainer').empty().append(objectLink);
     }
 
     async fetchRandomArtwork(museum) {
@@ -146,7 +192,9 @@ class MuseumArtApp {
             museumName, docs, is_public_domain,
             museumShortcode, objectId
         });
-        
+
+        this.createFavoriteButton(captionContainer, data);
+
         captionContainer.appendTo(objectLink);
         objectLink.appendTo('#objectContainer');
     }
@@ -207,6 +255,80 @@ class MuseumArtApp {
         });
         postcardButton.appendTo(postcardContainer);
         postcardContainer.appendTo(container);
+    }
+
+    createFavoriteButton(container, data) {
+        const button = $('<button class="favoriteButton"></button>');
+        const update = () => {
+            const fav = this.isFavorite(data.objectURL);
+            button.html(fav ? '★ Favorited' : '☆ Favorite');
+            button.toggleClass('is-favorite', fav);
+        };
+        update();
+        button.on('click', () => {
+            this.toggleFavorite(data);
+            update();
+        });
+        const favoriteContainer = $('<p class="favoriteContainer"></p>');
+        button.appendTo(favoriteContainer);
+        favoriteContainer.appendTo(container);
+    }
+
+    isFavorite(objectURL) {
+        return (this.favorites || []).some(item => item.objectURL === objectURL);
+    }
+
+    toggleFavorite(data) {
+        if (!this.favorites) this.favorites = [];
+        if (this.isFavorite(data.objectURL)) {
+            this.favorites = this.favorites.filter(item => item.objectURL !== data.objectURL);
+        } else {
+            this.favorites.unshift({
+                title: data.title,
+                artist: data.artistCulture || data.culture || '',
+                museum: data.museumName,
+                objectURL: data.objectURL,
+                imgPath: data.imgPath,
+                objectDate: data.objectDate || '',
+                is_public_domain: data.is_public_domain,
+                museumShortcode: data.museumShortcode,
+                objectId: data.objectId,
+                timestamp: new Date().toLocaleString()
+            });
+        }
+        this.saveFavorites();
+    }
+
+    loadFavorites() {
+        try {
+            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+            if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
+                browserAPI.storage.local.get([this.favoritesKey], (result) => {
+                    this.favorites = result[this.favoritesKey] || [];
+                });
+            } else {
+                const saved = localStorage.getItem(this.favoritesKey);
+                this.favorites = saved ? JSON.parse(saved) : [];
+            }
+        } catch (error) {
+            console.error('Error loading favorites from storage:', error);
+            this.favorites = [];
+        }
+    }
+
+    saveFavorites() {
+        try {
+            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+            if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
+                const data = {};
+                data[this.favoritesKey] = this.favorites;
+                browserAPI.storage.local.set(data);
+            } else {
+                localStorage.setItem(this.favoritesKey, JSON.stringify(this.favorites));
+            }
+        } catch (error) {
+            console.error('Error saving favorites to storage:', error);
+        }
     }
 
     addToHistory(data) {
@@ -343,7 +465,14 @@ class ArtInstituteChicago extends Museum {
 
     getRandomUrl() {
         const randInt = Math.floor(Math.random() * this.maxInt);
-        return `${this.endPoint}?limit=1&page=${randInt}`;
+        // Request only the fields we use to keep the payload small; `config`
+        // (with iiif_url) is always returned regardless of this parameter.
+        const fields = [
+            'id', 'title', 'image_id', 'thumbnail', 'artist_display',
+            'place_of_origin', 'date_display', 'category_titles',
+            'description', 'is_public_domain'
+        ].join(',');
+        return `${this.endPoint}?limit=1&page=${randInt}&fields=${fields}`;
     }
 
     async formatData(data) {
@@ -354,7 +483,11 @@ class ArtInstituteChicago extends Museum {
         let imgUrl = '';
         if (artwork.image_id) {
             const imgBaseUrl = data.config.iiif_url;
-            imgUrl = `${imgBaseUrl}/${artwork.image_id}/full/843,/0/default.jpg`;
+            // AIC's IIIF (v2) server rejects upscaling with a 403, so never
+            // request a width larger than the source image.
+            const sourceWidth = artwork.thumbnail?.width;
+            const width = sourceWidth ? Math.min(843, sourceWidth) : 843;
+            imgUrl = `${imgBaseUrl}/${artwork.image_id}/full/${width},/0/default.jpg`;
         }
         return {
             imgPath: imgUrl,

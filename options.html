@@ -36,22 +36,30 @@
             color: #b0b0b0;
         }
         
-        body.dark-mode #historyTable {
+        body.dark-mode #historyTable,
+        body.dark-mode #favoritesTable {
             background: #2a2a2a;
         }
-        
-        body.dark-mode #historyTable th {
+
+        body.dark-mode #historyTable th,
+        body.dark-mode #favoritesTable th {
             background: #333;
             color: #e0e0e0;
             border-bottom-color: #444;
         }
-        
-        body.dark-mode #historyTable td {
+
+        body.dark-mode #historyTable td,
+        body.dark-mode #favoritesTable td {
             border-bottom-color: #333;
             color: #b0b0b0;
         }
-        
-        body.dark-mode #historyTable tr:hover {
+
+        body.dark-mode #historyTable tr:hover,
+        body.dark-mode #favoritesTable tr:hover {
+            background: #333;
+        }
+
+        body.dark-mode .fav-thumb {
             background: #333;
         }
         
@@ -180,17 +188,17 @@
         }
 
         /* History Table Styling */
-        #historySection {
+        #historySection, #favoritesSection {
             margin-top: 40px;
         }
-        #historyTable {
+        #historyTable, #favoritesTable {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
             background: white;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        #historyTable th {
+        #historyTable th, #favoritesTable th {
             background: #f5f5f5;
             padding: 12px;
             text-align: left;
@@ -198,14 +206,38 @@
             color: #333;
             border-bottom: 2px solid #ddd;
         }
-        #historyTable td {
+        #historyTable td, #favoritesTable td {
             padding: 12px;
             border-bottom: 1px solid #eee;
             color: #666;
             vertical-align: middle;
         }
-        #historyTable tr:hover {
+        #historyTable tr:hover, #favoritesTable tr:hover {
             background: #fafafa;
+        }
+        .fav-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #eee;
+            display: block;
+        }
+        .remove-button {
+            background-color: #888;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 400;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin-left: 6px;
+            transition: background-color 0.2s ease;
+        }
+        .remove-button:hover {
+            background-color: #666;
         }
         .history-title {
             font-weight: 400;
@@ -311,10 +343,10 @@
     <div class="option">
         <div class="option-info">
             <div class="option-name">Art Institute of Chicago</div>
-            <div class="description">World-renowned collection spanning thousands of years</div>
+            <div class="description">World-renowned collection spanning thousands of years. Note: the museum's image server is currently behind Cloudflare and images may not load, so this source is off by default.</div>
         </div>
         <label class="switch">
-            <input type="checkbox" id="enableAIC" checked>
+            <input type="checkbox" id="enableAIC">
             <span class="slider"></span>
         </label>
     </div>
@@ -354,6 +386,31 @@
 
     <div id="status" class="status">Settings saved!</div>
     <div id="warning" class="warning">At least one source must be enabled!</div>
+
+    <!-- Favorites Section -->
+    <div id="favoritesSection">
+        <h2>Favorite Artworks</h2>
+        <p style="color: #666; font-size: 14px;">Artworks you've starred. Click "☆ Favorite" on any new tab to add one here.</p>
+
+        <div id="emptyFavorites" style="display: none;">
+            No favorites yet. Star an artwork from a new tab to save it here.
+        </div>
+
+        <table id="favoritesTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Museum</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="favoritesTableBody">
+                <!-- Favorite rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
 
     <!-- Viewing History Section -->
     <div id="historySection">
