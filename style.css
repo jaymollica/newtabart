@@ -3,7 +3,51 @@ html, body, #objectContainer {
   width: 100%;
   overflow-x: hidden;
   font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
-  font-weight: 200; }
+  font-weight: 200;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+body.dark-mode a {
+  color: #e0e0e0;
+}
+
+body.dark-mode .captionContainer .title {
+  color: #e0e0e0;
+}
+
+body.dark-mode .captionContainer .date {
+  color: #b0b0b0;
+}
+
+body.dark-mode .captionContainer .nationality {
+  color: #b0b0b0;
+}
+
+body.dark-mode .captionContainer .sourceLink {
+  color: #ff6666;
+}
+
+body.dark-mode .captionContainer .objectDescription a {
+  color: #ff6666;
+}
+
+body.dark-mode .captionContainer .description {
+  color: #b0b0b0;
+}
+
+body.dark-mode .captionContainer .description a {
+  color: #ff6666;
+}
+
+body.dark-mode #settingsLink {
+  color: #ff6666;
+}
 
 #objectContainer {
   width: 100%;

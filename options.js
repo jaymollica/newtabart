@@ -4,10 +4,32 @@ const defaultSettings = {
     enableAIC: true,
     enableCleveland: true,
     enableMet: true,
-    enableWikimedia: false
+    enableWikimedia: false,
+    darkMode: 'auto' // 'off', 'on', or 'auto'
 };
 
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
+// Dark mode functions
+function isDarkModePreferred() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function applyDarkMode(darkModeSetting) {
+    let shouldBeDark = false;
+    
+    if (darkModeSetting === 'on') {
+        shouldBeDark = true;
+    } else if (darkModeSetting === 'auto') {
+        shouldBeDark = isDarkModePreferred();
+    }
+    
+    if (shouldBeDark) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+}
 
 // Load saved settings
 browserAPI.storage.local.get(defaultSettings, (result) => {
@@ -16,6 +38,15 @@ browserAPI.storage.local.get(defaultSettings, (result) => {
     document.getElementById('enableCleveland').checked = result.enableCleveland;
     document.getElementById('enableMet').checked = result.enableMet;
     document.getElementById('enableWikimedia').checked = result.enableWikimedia;
+    
+    // Set dark mode radio button
+    const darkMode = result.darkMode || 'auto';
+    document.getElementById('darkModeOff').checked = (darkMode === 'off');
+    document.getElementById('darkModeOn').checked = (darkMode === 'on');
+    document.getElementById('darkModeAuto').checked = (darkMode === 'auto');
+    
+    // Apply dark mode to settings page
+    applyDarkMode(darkMode);
 });
 
 // Get all checkboxes
@@ -40,20 +71,32 @@ checkboxes.forEach(checkbox => {
             return;
         }
 
-        // Save settings
-        const settings = {
-            enableWhitney: document.getElementById('enableWhitney').checked,
-            enableAIC: document.getElementById('enableAIC').checked,
-            enableCleveland: document.getElementById('enableCleveland').checked,
-            enableMet: document.getElementById('enableMet').checked,
-            enableWikimedia: document.getElementById('enableWikimedia').checked
-        };
-
-        browserAPI.storage.local.set(settings, () => {
-            showStatus();
-        });
+        saveSettings();
     });
 });
+
+// Dark mode radio button listeners
+document.querySelectorAll('input[name="darkMode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        saveSettings();
+        applyDarkMode(radio.value);
+    });
+});
+
+function saveSettings() {
+    const settings = {
+        enableWhitney: document.getElementById('enableWhitney').checked,
+        enableAIC: document.getElementById('enableAIC').checked,
+        enableCleveland: document.getElementById('enableCleveland').checked,
+        enableMet: document.getElementById('enableMet').checked,
+        enableWikimedia: document.getElementById('enableWikimedia').checked,
+        darkMode: document.querySelector('input[name="darkMode"]:checked').value
+    };
+
+    browserAPI.storage.local.set(settings, () => {
+        showStatus();
+    });
+}
 
 function showStatus() {
     const status = document.getElementById('status');
@@ -136,12 +179,12 @@ function displayHistory(history) {
             postcardBtn.className = 'postcard-button';
             postcardBtn.textContent = 'Create Postcard';
             postcardBtn.addEventListener('click', () => {
-                const postcardUrl = `https://sweetpost.art/?museum=${item.museumShortcode}&object_id=${item.objectId}`;
+                const postcardUrl = `https://sweetpost.art/create?museum=${item.museumShortcode}&object_id=${item.objectId}`;
                 window.open(postcardUrl, '_blank');
             });
             actionCell.appendChild(postcardBtn);
         } else {
-            actionCell.textContent = '—';
+            actionCell.textContent = '-';
             actionCell.style.color = '#ccc';
         }
         
@@ -171,4 +214,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Refresh history every few seconds in case it's updated from another tab
     setInterval(loadHistory, 3000);
+    
+    // Listen for system dark mode preference changes
+    if (window.matchMedia) {
+        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        darkModeQuery.addListener(() => {
+            browserAPI.storage.local.get(['darkMode'], (result) => {
+                if (result.darkMode === 'auto') {
+                    applyDarkMode('auto');
+                }
+            });
+        });
+    }
 });

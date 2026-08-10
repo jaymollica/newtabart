@@ -24,6 +24,7 @@ class MuseumArtApp {
 
     async init() {
         await this.loadSettings();
+        this.applyDarkMode();
         $(document).ready(() => {
             this.loadRandomArtwork();
         });
@@ -36,7 +37,8 @@ class MuseumArtApp {
                 enableAIC: true,
                 enableCleveland: true,
                 enableMet: true,
-                enableWikimedia: false
+                enableWikimedia: false,
+                darkMode: 'auto'
             };
 
             const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
@@ -47,9 +49,43 @@ class MuseumArtApp {
                 if (result.enableCleveland) this.activeMuseums.cma = this.museums.cma;
                 if (result.enableMet) this.activeMuseums.met = this.museums.met;
                 if (result.enableWikimedia) this.activeMuseums.wmc = this.museums.wmc;
+                
+                // Store dark mode setting
+                this.darkModeSetting = result.darkMode || 'auto';
+                
                 resolve();
             });
         });
+    }
+
+    isDarkModePreferred() {
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    applyDarkMode() {
+        let shouldBeDark = false;
+        
+        if (this.darkModeSetting === 'on') {
+            shouldBeDark = true;
+        } else if (this.darkModeSetting === 'auto') {
+            shouldBeDark = this.isDarkModePreferred();
+        }
+        
+        if (shouldBeDark) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+        
+        // Listen for system preference changes
+        if (window.matchMedia && this.darkModeSetting === 'auto') {
+            const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            darkModeQuery.addListener(() => {
+                if (this.darkModeSetting === 'auto') {
+                    this.applyDarkMode();
+                }
+            });
+        }
     }
 
     getRandomMuseum() {
@@ -166,7 +202,7 @@ class MuseumArtApp {
         const postcardContainer = $('<p class="postcardContainer"></p>');
         const postcardButton = $('<button class="postcardButton">Create Postcard</button>');
         postcardButton.on('click', () => {
-            const postcardUrl = `https://sweetpost.art/?museum=${museumShortcode}&object_id=${objectId}`;
+            const postcardUrl = `https://sweetpost.art/create?museum=${museumShortcode}&object_id=${objectId}`;
             window.open(postcardUrl, '_blank');
         });
         postcardButton.appendTo(postcardContainer);
