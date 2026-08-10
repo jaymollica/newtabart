@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>New Tab New Art - Options</title>
     <script src="browser-polyfill.js"></script>
     <style>
@@ -74,6 +75,17 @@
         h1 {
             font-weight: 300;
             color: #333;
+        }
+        .back-link {
+            color: #ff4444;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        body.dark-mode .back-link {
+            color: #ff6666;
         }
         h2 {
             font-weight: 300;
@@ -301,7 +313,8 @@
 </head>
 <body>
     <h1>New Tab New Art - Settings</h1>
-    
+    <p><a class="back-link" href="newpage.html">← View random art</a></p>
+
     <h2>Appearance</h2>
     <p style="color: #666; font-size: 14px;">Choose when to display dark mode</p>
     

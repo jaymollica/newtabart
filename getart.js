@@ -405,13 +405,14 @@ class WhitneyMuseum extends Museum {
             shortname: "wht",
             endPoint: "https://whitney.org/api/artworks/",
             docs: "https://whitney.org/about/website/api",
-            maxInt: "27254",
-            maxPage: "909"
+            maxInt: "27254"
         });
     }
 
     getRandomUrl() {
-        const randInt = Math.floor(Math.random() * this.maxPage);
+        // The endpoint takes an artwork ID (0..~27254). Sample the full range,
+        // not maxPage — otherwise variety is limited to the first ~900 works.
+        const randInt = Math.floor(Math.random() * this.maxInt);
         return `${this.endPoint}${randInt}`;
     }
 
