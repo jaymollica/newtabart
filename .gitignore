@@ -1,0 +1,6 @@
+# macOS
+.DS_Store
+
+# Build / packaging artifacts
+*.zip
+Archive.zip
