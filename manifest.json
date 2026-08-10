@@ -1,15 +1,15 @@
 {
   "name": "New Tab New Art",
   "short_name": "New Tab New Art",
-  "version": "2025.6",
+  "version": "2025.8",
   "description": "See a new piece of art every time you open a tab.",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "permissions": ["storage"],
   "background": {
-    "scripts": ["browser-polyfill.js", "background.js"],
-    "persistent": false
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
   },
-  "browser_action": {
+  "action": {
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
@@ -34,10 +34,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "support@sweetpost.art",
-      "strict_min_version": "58.0",
-      "data_collection_permissions": {
-        "required": ["none"]
-      }
+      "strict_min_version": "109.0"
     }
   },
   "icons": { 
