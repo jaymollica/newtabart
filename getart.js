@@ -206,11 +206,20 @@ class MuseumArtApp {
         }
     }
 
-    preloadImage(url) {
+    preloadImage(url, timeoutMs = 10000) {
         return new Promise((resolve) => {
             const img = new Image();
-            img.onload = () => resolve(true);
+            const timer = setTimeout(() => {
+                console.warn('Image load timed out:', url);
+                img.src = '';
+                resolve(false);
+            }, timeoutMs);
+            img.onload = () => {
+                clearTimeout(timer);
+                resolve(true);
+            };
             img.onerror = () => {
+                clearTimeout(timer);
                 console.warn('Image failed to load:', url);
                 resolve(false);
             };
@@ -477,16 +486,32 @@ class MuseumArtApp {
 }
 
 class Museum {
+    static REQUEST_TIMEOUT_MS = 4000;
+
     constructor(config) {
         Object.assign(this, config);
     }
 
-    async fetchJson(url) {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+    // Fetch JSON with a hard timeout. A museum API that accepts the
+    // connection but answers slowly would otherwise hold the tab for as
+    // long as the browser allows; aborting lets the retry loop move on.
+    async fetchJson(url, timeoutMs = Museum.REQUEST_TIMEOUT_MS) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error(`Request timed out after ${timeoutMs}ms: ${url}`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timer);
         }
-        return response.json();
     }
 
     // Fetch one random artwork, formatted. Museums that can filter to
@@ -570,9 +595,7 @@ class WhitneyMuseum extends Museum {
 
     async getArtist(id) {
         try {
-            const response = await fetch(`https://whitney.org/api/artists/${id}`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
+            const data = await this.fetchJson(`https://whitney.org/api/artists/${id}`);
             return data.data?.attributes?.display_name || '';
         } catch (error) {
             console.error(`Error fetching artist ${id}:`, error);
