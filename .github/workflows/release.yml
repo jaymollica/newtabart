@@ -1,0 +1,121 @@
+# Build and submit the extension to the Chrome Web Store and Firefox Add-ons
+# whenever a version tag is pushed. See RELEASING.md for setup and usage.
+#
+# Trigger:   git tag v2026.2 && git push origin v2026.2
+# Requires:  the tag to match "version" in manifest.json
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Submit to the stores (otherwise only build and lint)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and lint
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      zip: ${{ steps.meta.outputs.zip }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read version and check it matches the tag
+        id: meta
+        run: |
+          VERSION=$(python3 -c 'import json; print(json.load(open("manifest.json"))["version"])')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip=new-tab-new-art-$VERSION.zip" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match manifest version $VERSION"
+            exit 1
+          fi
+
+      - name: Build package
+        run: scripts/build.sh
+
+      - name: Lint with web-ext
+        run: npx --yes web-ext@10 lint --source-dir dist/unpacked --boring
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: dist/
+          if-no-files-found: error
+
+      - name: Attach zip to GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/${{ steps.meta.outputs.zip }}" \
+            --title "${{ steps.meta.outputs.version }}" \
+            --generate-notes
+
+  chrome:
+    name: Submit to Chrome Web Store
+    needs: build
+    if: github.ref_type == 'tag' || inputs.publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension
+          path: dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Uploads the zip and submits it for review. Chrome publishes
+      # automatically once its review passes.
+      - name: Upload and publish
+        env:
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: npx --yes chrome-webstore-upload-cli@4 --source "dist/${{ needs.build.outputs.zip }}"
+
+  firefox:
+    name: Submit to Firefox Add-ons
+    needs: build
+    if: github.ref_type == 'tag' || inputs.publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: extension
+          path: dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Submits a new listed version for review and returns without waiting
+      # for approval (approval-timeout 0). AMO emails when review completes.
+      - name: Sign and submit
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          npx --yes web-ext@10 sign \
+            --source-dir dist/unpacked \
+            --artifacts-dir dist/amo \
+            --channel listed \
+            --approval-timeout 0

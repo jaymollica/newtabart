@@ -4,3 +4,8 @@
 # Build / packaging artifacts
 *.zip
 Archive.zip
+
+# Build output
+dist/
+web-ext-artifacts/
+node_modules/
