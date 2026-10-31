@@ -91,3 +91,15 @@ required for AMO review.
   currently in the store. Bump the manifest and re-tag.
 - An AMO submission fails for the same reason, and also if lint reports
   errors (warnings are fine).
+- `Chrome Web Store API has not been used in project ... or it is disabled`:
+  enable the API in the same Google Cloud project that holds the OAuth
+  client, wait a minute, then re-run the failed job with
+  `gh run rerun <run-id> --failed`.
+- `Permission denied on resource 'publishers/.../items/...'`: the
+  extension ID or publisher ID secret is wrong, or the refresh token was
+  generated with a Google account that doesn't own the listing. The
+  extension ID is the 32-letter string in the store URL
+  (`oldcmmikbakmkmikgikndeekekdihgnf`). Copy the publisher ID while the
+  publisher that owns the item ("Sweet Post") is selected in the dashboard.
+- A failed store job can be re-run alone without a new tag or version
+  bump, as long as the version hasn't been accepted by that store yet.
