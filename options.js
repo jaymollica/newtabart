@@ -9,7 +9,9 @@ const defaultSettings = {
     enableCleveland: true,
     enableMet: true,
     enableWikimedia: false,
-    darkMode: 'auto' // 'off', 'on', or 'auto'
+    darkMode: 'auto', // 'off', 'on', or 'auto'
+    highlightsOnly: false,
+    historyLimit: 10
 };
 
 const checkboxes = [
@@ -32,7 +34,13 @@ browserAPI.storage.local.get(defaultSettings, (result) => {
     document.getElementById('darkModeOff').checked = (darkMode === 'off');
     document.getElementById('darkModeOn').checked = (darkMode === 'on');
     document.getElementById('darkModeAuto').checked = (darkMode === 'auto');
+
+    document.getElementById('highlightsOnly').checked = !!result.highlightsOnly;
+    document.getElementById('historyLimit').value = String(result.historyLimit || 10);
 });
+
+document.getElementById('highlightsOnly').addEventListener('change', saveSettings);
+document.getElementById('historyLimit').addEventListener('change', saveSettings);
 
 initDarkMode();
 
@@ -65,9 +73,15 @@ function saveSettings() {
         enableCleveland: document.getElementById('enableCleveland').checked,
         enableMet: document.getElementById('enableMet').checked,
         enableWikimedia: document.getElementById('enableWikimedia').checked,
-        darkMode: document.querySelector('input[name="darkMode"]:checked').value
+        darkMode: document.querySelector('input[name="darkMode"]:checked').value,
+        highlightsOnly: document.getElementById('highlightsOnly').checked,
+        historyLimit: parseInt(document.getElementById('historyLimit').value, 10) || 10
     };
     browserAPI.storage.local.set(settings, () => {
         showStatus('status');
+        // The new tab page caches the next artwork against the current
+        // settings; drop it so a changed source or filter takes effect
+        // on the very next tab.
+        browserAPI.storage.local.remove('museumArtPrefetched');
     });
 }

@@ -211,3 +211,34 @@ a {
   opacity: 1;
   text-decoration: underline;
 }
+/* Loading state shown until the first artwork renders */
+#loadingState {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#loadingState .loadingText {
+  font-size: 1rem;
+  font-weight: 300;
+  color: #9a9a9a;
+  letter-spacing: 0.02em;
+  animation: loadingPulse 1.6s ease-in-out infinite;
+}
+
+body.dark-mode #loadingState .loadingText {
+  color: #777;
+}
+
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #loadingState .loadingText {
+    animation: none;
+    opacity: 0.7;
+  }
+}

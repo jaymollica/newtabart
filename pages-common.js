@@ -54,6 +54,22 @@ function showStatus(id = 'status', duration = 2000) {
     }, duration);
 }
 
+// ---- Export ----
+
+// Download `data` as a pretty-printed JSON file.
+function exportJSON(baseName, data) {
+    const date = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${baseName}-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // ---- Artwork table rows ----
 
 function createPostcardButton(item) {

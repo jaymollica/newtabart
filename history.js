@@ -18,6 +18,7 @@ function displayHistory(history) {
     const historyTable = document.getElementById('historyTable');
     const historyTableBody = document.getElementById('historyTableBody');
 
+    document.getElementById('exportHistoryBtn').disabled = history.length === 0;
     historyTableBody.innerHTML = '';
     if (history.length === 0) {
         emptyHistory.style.display = 'block';
@@ -41,8 +42,21 @@ document.getElementById('clearHistoryBtn').addEventListener('click', () => {
     }
 });
 
+document.getElementById('exportHistoryBtn').addEventListener('click', () => {
+    browserAPI.storage.local.get(['museumArtHistory'], (result) => {
+        exportJSON('new-tab-new-art-history', result.museumArtHistory || []);
+    });
+});
+
+function loadHistoryLimit() {
+    browserAPI.storage.local.get({ historyLimit: 10 }, (result) => {
+        document.getElementById('historyLimitText').textContent = result.historyLimit || 10;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
+    loadHistoryLimit();
     loadHistory();
     // Refresh in case history changes from another tab
     setInterval(loadHistory, 3000);

@@ -17,20 +17,98 @@ class MuseumArtApp {
         };
         
         this.maxHistoryItems = 10;
+        this.highlightsOnly = false;
         this.storageKey = 'museumArtHistory';
         this.favoritesKey = 'museumArtFavorites';
+        this.prefetchKey = 'museumArtPrefetched';
         this.maxAttempts = 8;
-        this.loadHistory();
-        this.loadFavorites();
+        this.viewHistory = [];
+        this.favorites = [];
         this.init();
     }
 
     async init() {
-        await this.loadSettings();
+        await Promise.all([this.loadSettings(), this.loadHistory(), this.loadFavorites()]);
         this.applyDarkMode();
         $(document).ready(() => {
-            this.loadRandomArtwork();
+            this.showPrefetchedOrLoad();
         });
+    }
+
+    // ---- Prefetching ----
+    // After an artwork is shown, the next one is fetched in the background
+    // (image included, so it lands in the HTTP cache) and stored. The next
+    // new tab shows it immediately instead of waiting on the museum APIs.
+
+    settingsSignature() {
+        return JSON.stringify({
+            museums: Object.keys(this.activeMuseums).sort(),
+            highlights: this.highlightsOnly
+        });
+    }
+
+    storageGet(keys) {
+        return new Promise((resolve) => {
+            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+            browserAPI.storage.local.get(keys, (result) => resolve(result || {}));
+        });
+    }
+
+    storageSet(data) {
+        return new Promise((resolve) => {
+            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+            browserAPI.storage.local.set(data, () => resolve());
+        });
+    }
+
+    storageRemove(key) {
+        return new Promise((resolve) => {
+            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+            browserAPI.storage.local.remove(key, () => resolve());
+        });
+    }
+
+    async showPrefetchedOrLoad() {
+        try {
+            const result = await this.storageGet([this.prefetchKey]);
+            const prefetched = result[this.prefetchKey];
+            if (prefetched && prefetched.signature === this.settingsSignature() && prefetched.data?.imgPath) {
+                // Claim it right away so a second tab opening at the same
+                // moment is less likely to show the same piece.
+                await this.storageRemove(this.prefetchKey);
+                const loaded = await this.preloadImage(prefetched.data.imgPath);
+                if (loaded) {
+                    this.displayArtwork(prefetched.data);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.warn('Could not use prefetched artwork:', error);
+        }
+        this.loadRandomArtwork();
+    }
+
+    async prefetchNext(currentObjectURL) {
+        for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
+            const museum = this.getRandomMuseum();
+            if (!museum) return;
+            try {
+                const data = await this.fetchRandomArtwork(museum);
+                if (!data || !data.imgPath || data.objectURL === currentObjectURL) continue;
+                const loaded = await this.preloadImage(data.imgPath);
+                if (!loaded) continue;
+                await this.storageSet({
+                    [this.prefetchKey]: {
+                        signature: this.settingsSignature(),
+                        data: data,
+                        savedAt: Date.now()
+                    }
+                });
+                return;
+            } catch (error) {
+                console.warn('Prefetch attempt failed:', error);
+            }
+        }
     }
 
     async loadSettings() {
@@ -44,7 +122,9 @@ class MuseumArtApp {
                 enableCleveland: true,
                 enableMet: true,
                 enableWikimedia: false,
-                darkMode: 'auto'
+                darkMode: 'auto',
+                highlightsOnly: false,
+                historyLimit: 10
             };
 
             const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
@@ -58,6 +138,8 @@ class MuseumArtApp {
                 
                 // Store dark mode setting
                 this.darkModeSetting = result.darkMode || 'auto';
+                this.highlightsOnly = !!result.highlightsOnly;
+                this.maxHistoryItems = parseInt(result.historyLimit, 10) || 10;
                 
                 resolve();
             });
@@ -155,14 +237,8 @@ class MuseumArtApp {
     }
 
     async fetchRandomArtwork(museum) {
-        const url = museum.getRandomUrl();
         try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            return await museum.formatData(data);
+            return await museum.fetchRandom({ highlightsOnly: this.highlightsOnly });
         } catch (error) {
             console.error(`Error fetching from ${museum.museum}:`, error);
             throw error;
@@ -197,6 +273,8 @@ class MuseumArtApp {
 
         captionContainer.appendTo(objectLink);
         objectLink.appendTo('#objectContainer');
+
+        this.prefetchNext(objectURL);
     }
 
     loadImage(imgPath, container) {
@@ -303,20 +381,24 @@ class MuseumArtApp {
     }
 
     loadFavorites() {
-        try {
-            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
-            if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
-                browserAPI.storage.local.get([this.favoritesKey], (result) => {
-                    this.favorites = result[this.favoritesKey] || [];
-                });
-            } else {
+        return new Promise((resolve) => {
+            try {
+                const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+                if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
+                    browserAPI.storage.local.get([this.favoritesKey], (result) => {
+                        this.favorites = result[this.favoritesKey] || [];
+                        resolve();
+                    });
+                    return;
+                }
                 const saved = localStorage.getItem(this.favoritesKey);
                 this.favorites = saved ? JSON.parse(saved) : [];
+            } catch (error) {
+                console.error('Error loading favorites from storage:', error);
+                this.favorites = [];
             }
-        } catch (error) {
-            console.error('Error loading favorites from storage:', error);
-            this.favorites = [];
-        }
+            resolve();
+        });
     }
 
     saveFavorites() {
@@ -358,20 +440,24 @@ class MuseumArtApp {
     }
 
     loadHistory() {
-        try {
-            const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
-            if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
-                browserAPI.storage.local.get([this.storageKey], (result) => {
-                    this.viewHistory = result[this.storageKey] || [];
-                });
-            } else {
+        return new Promise((resolve) => {
+            try {
+                const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+                if (typeof browserAPI !== 'undefined' && browserAPI.storage) {
+                    browserAPI.storage.local.get([this.storageKey], (result) => {
+                        this.viewHistory = result[this.storageKey] || [];
+                        resolve();
+                    });
+                    return;
+                }
                 const saved = localStorage.getItem(this.storageKey);
                 this.viewHistory = saved ? JSON.parse(saved) : [];
+            } catch (error) {
+                console.error('Error loading history from storage:', error);
+                this.viewHistory = [];
             }
-        } catch (error) {
-            console.error('Error loading history from storage:', error);
-            this.viewHistory = [];
-        }
+            resolve();
+        });
     }
 
     saveHistory() {
@@ -394,6 +480,31 @@ class Museum {
     constructor(config) {
         Object.assign(this, config);
     }
+
+    async fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    }
+
+    // Fetch one random artwork, formatted. Museums that can filter to
+    // curated highlights override getHighlightUrl() (or fetchHighlight()
+    // when it takes more than one request); others ignore the option.
+    async fetchRandom({ highlightsOnly = false } = {}) {
+        if (highlightsOnly && this.supportsHighlights) {
+            return this.fetchHighlight();
+        }
+        const data = await this.fetchJson(this.getRandomUrl());
+        return this.formatData(data);
+    }
+
+    async fetchHighlight() {
+        const data = await this.fetchJson(this.getHighlightUrl());
+        return this.formatData(data);
+    }
+
     getRandomUrl() {
         throw new Error('getRandomUrl must be implemented by subclass');
     }
@@ -409,7 +520,8 @@ class WhitneyMuseum extends Museum {
             shortname: "wht",
             endPoint: "https://whitney.org/api/artworks/",
             docs: "https://whitney.org/about/website/api",
-            maxInt: "27254"
+            maxInt: "27254",
+            supportsHighlights: true
         });
     }
 
@@ -420,9 +532,22 @@ class WhitneyMuseum extends Museum {
         return `${this.endPoint}${randInt}`;
     }
 
+    // The Whitney has no curated highlight flag, but exposes `popularity`,
+    // a 0..1 rank by views over the last 30 days. Only a few hundred works
+    // have a rank at all; 0.5 and up is roughly the 200 most-viewed pieces.
+    getHighlightUrl() {
+        return `${this.endPoint}?q%5Bpopularity_gteq%5D=0.5&q%5Bs%5D=random&per_page=1`;
+    }
+
+    async fetchHighlight() {
+        const list = await this.fetchJson(this.getHighlightUrl());
+        if (!list.data || list.data.length === 0) return { imgPath: '' };
+        return this.formatData({ data: list.data[0] });
+    }
+
     async formatData(data) {
-        let artistName = '';
-        if (data.data?.relationships?.artists?.data?.length > 0) {
+        let artistName = data.data?.attributes?.display_artist_text || '';
+        if (!artistName && data.data?.relationships?.artists?.data?.length > 0) {
             const artistId = data.data.relationships.artists.data[0].id;
             artistName = await this.getArtist(artistId);
         }
@@ -519,13 +644,30 @@ class ClevelandMuseum extends Museum {
             shortname: "cma",
             endPoint: "https://openaccess-api.clevelandart.org/api/artworks/",
             docs: "https://openaccess-api.clevelandart.org/",
-            maxInt: "29144"
+            maxInt: "29144",
+            supportsHighlights: true,
+            // Works flagged for the Collection Online front page. Updated from
+            // the API's own total after the first highlight request.
+            highlightTotal: 246
         });
     }
 
     getRandomUrl() {
         const randInt = Math.floor(Math.random() * this.maxInt);
         return `${this.endPoint}?has_image=1&limit=1&skip=${randInt}`;
+    }
+
+    getHighlightUrl() {
+        const skip = Math.floor(Math.random() * this.highlightTotal);
+        return `${this.endPoint}?highlight=1&has_image=1&limit=1&skip=${skip}`;
+    }
+
+    async fetchHighlight() {
+        const data = await this.fetchJson(this.getHighlightUrl());
+        if (data.info?.total) {
+            this.highlightTotal = data.info.total;
+        }
+        return this.formatData(data);
     }
 
     async formatData(data) {
@@ -561,13 +703,36 @@ class MetropolitanMuseum extends Museum {
             shortname: "met",
             endPoint: "https://collectionapi.metmuseum.org/public/collection/v1/objects/",
             docs: "https://metmuseum.github.io/",
-            maxInt: "471581"
+            maxInt: "471581",
+            searchEndPoint: "https://collectionapi.metmuseum.org/public/collection/v1.1/search",
+            supportsHighlights: true,
+            // Works the Met marks isHighlight and that have images. Updated
+            // from the API's own total after the first highlight request.
+            highlightTotal: 2301
         });
     }
 
     getRandomUrl() {
         const randInt = Math.floor(Math.random() * this.maxInt);
         return `${this.endPoint}${randInt}`;
+    }
+
+    getHighlightUrl() {
+        const offset = Math.floor(Math.random() * this.highlightTotal);
+        return `${this.searchEndPoint}?isHighlight=true&hasImages=true&q=*&limit=1&offset=${offset}`;
+    }
+
+    // Two requests: the paginated search gives one object ID at a random
+    // offset, then the object endpoint gives the record itself.
+    async fetchHighlight() {
+        const search = await this.fetchJson(this.getHighlightUrl());
+        if (search.total) {
+            this.highlightTotal = search.total;
+        }
+        const objectId = search.objectIDs?.[0];
+        if (!objectId) return { imgPath: '' };
+        const data = await this.fetchJson(`${this.endPoint}${objectId}`);
+        return this.formatData(data);
     }
 
     async formatData(data) {

@@ -224,10 +224,35 @@ input:checked + .slider:before {
     font-style: italic;
 }
 
+/* Select input */
+.select-input {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+    cursor: pointer;
+}
+body.dark-mode .select-input {
+    background: #333;
+    color: #e0e0e0;
+    border-color: #555;
+}
+
+/* Toolbar above tables */
+.table-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
 /* Buttons */
 .postcard-button,
 .remove-button,
-.clear-history {
+.clear-history,
+.export-button {
     color: white;
     border: none;
     border-radius: 4px;
@@ -256,14 +281,23 @@ input:checked + .slider:before {
 .remove-button:hover {
     background-color: #666;
 }
-.clear-history {
-    margin-top: 10px;
+.clear-history,
+.export-button {
     background-color: #666;
     padding: 8px 16px;
     font-size: 0.85rem;
 }
-.clear-history:hover {
+.clear-history:hover,
+.export-button:hover {
     background-color: #444;
+}
+.export-button:disabled {
+    background-color: #bbb;
+    cursor: default;
+}
+body.dark-mode .export-button:disabled {
+    background-color: #444;
+    color: #888;
 }
 
 /* Dark mode */

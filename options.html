@@ -41,6 +41,18 @@
         </div>
     </div>
     
+    <h2>Artwork Selection</h2>
+    <div class="option">
+        <div class="option-info">
+            <div class="option-name">Highlights only</div>
+            <div class="description">Show only works each museum features as collection highlights. Applies to the Whitney, Cleveland, and the Met; other sources keep showing random works.</div>
+        </div>
+        <label class="switch">
+            <input type="checkbox" id="highlightsOnly">
+            <span class="slider"></span>
+        </label>
+    </div>
+
     <h2>Art Sources</h2>
     <p class="intro">Select which sources to include in your new tab rotation. At least one source must be enabled.</p>
     
@@ -112,8 +124,14 @@
     <div class="option">
         <div class="option-info">
             <div class="option-name"><a class="history-link" href="history.html">⏱ Recently Viewed</a></div>
-            <div class="description">Your last 10 viewed artworks.</div>
+            <div class="description">How many viewed artworks to keep in your history.</div>
         </div>
+        <select id="historyLimit" class="select-input">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
     </div>
 
     <script src="pages-common.js"></script>

@@ -18,8 +18,11 @@
     </nav>
 
     <h2>Recently Viewed Artworks</h2>
-    <p class="intro">Your last 10 viewed artworks</p>
-    <button class="clear-history" id="clearHistoryBtn">Clear History</button>
+    <p class="intro">Your last <span id="historyLimitText">10</span> viewed artworks. Change how many are kept in <a class="history-link" href="options.html">Settings</a>.</p>
+    <div class="table-actions">
+        <button class="export-button" id="exportHistoryBtn" disabled>Export as JSON</button>
+        <button class="clear-history" id="clearHistoryBtn">Clear History</button>
+    </div>
 
     <div id="status" class="status">History cleared.</div>
 

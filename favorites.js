@@ -18,6 +18,7 @@ function displayFavorites(favorites) {
     const favoritesTable = document.getElementById('favoritesTable');
     const favoritesTableBody = document.getElementById('favoritesTableBody');
 
+    document.getElementById('exportFavoritesBtn').disabled = favorites.length === 0;
     favoritesTableBody.innerHTML = '';
     if (favorites.length === 0) {
         emptyFavorites.style.display = 'block';
@@ -42,6 +43,12 @@ function removeFavorite(objectURL) {
         });
     });
 }
+
+document.getElementById('exportFavoritesBtn').addEventListener('click', () => {
+    browserAPI.storage.local.get(['museumArtFavorites'], (result) => {
+        exportJSON('new-tab-new-art-favorites', result.museumArtFavorites || []);
+    });
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
