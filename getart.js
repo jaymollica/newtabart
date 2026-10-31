@@ -229,9 +229,12 @@ class MuseumArtApp {
         const description = $('<p class="descriptionContainer"><span class="description">This artwork is sourced from the <a href="'+data.docs+'">'+data.museumName+' Collection API</a>. This browser extension is not affiliated with the museum. The source code for the extension can be found on <a href="https://github.com/jaymollica/newtabart">github</a>.</span></p>');
         description.appendTo(container);
 
-        // Add settings link
-        const settingsLink = $('<a id="settingsLink" href="options.html">⚙ Settings</a>');
-        settingsLink.appendTo(container);
+        // Footer links to the extension's own pages
+        const footerLinks = $('<p class="footerLinks"></p>');
+        $('<a class="footerLink" href="favorites.html">★ Favorites</a>').appendTo(footerLinks);
+        $('<a class="footerLink" href="history.html">⏱ History</a>').appendTo(footerLinks);
+        $('<a class="footerLink" id="settingsLink" href="options.html">⚙ Settings</a>').appendTo(footerLinks);
+        footerLinks.appendTo(container);
 
         $('<br/>').appendTo(container);
         

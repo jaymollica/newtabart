@@ -1,0 +1,149 @@
+// Shared helpers for the extension's internal pages
+// (options.html, favorites.html, history.html).
+
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
+// ---- Dark mode ----
+
+function isDarkModePreferred() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function applyDarkMode(darkModeSetting) {
+    let shouldBeDark = false;
+    if (darkModeSetting === 'on') {
+        shouldBeDark = true;
+    } else if (darkModeSetting === 'auto') {
+        shouldBeDark = isDarkModePreferred();
+    }
+    document.body.classList.toggle('dark-mode', shouldBeDark);
+}
+
+// Apply the saved dark mode setting and keep following the system
+// preference while the page is open. Returns the saved setting.
+function initDarkMode(callback) {
+    browserAPI.storage.local.get({ darkMode: 'auto' }, (result) => {
+        const darkMode = result.darkMode || 'auto';
+        applyDarkMode(darkMode);
+        if (callback) callback(darkMode);
+    });
+
+    if (window.matchMedia) {
+        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const onChange = () => {
+            browserAPI.storage.local.get({ darkMode: 'auto' }, (result) => {
+                if (result.darkMode === 'auto') applyDarkMode('auto');
+            });
+        };
+        if (darkModeQuery.addEventListener) {
+            darkModeQuery.addEventListener('change', onChange);
+        } else {
+            darkModeQuery.addListener(onChange);
+        }
+    }
+}
+
+// ---- Status banner ----
+
+function showStatus(id = 'status', duration = 2000) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = 'block';
+    setTimeout(() => {
+        el.style.display = 'none';
+    }, duration);
+}
+
+// ---- Artwork table rows ----
+
+function createPostcardButton(item) {
+    const btn = document.createElement('button');
+    btn.className = 'postcard-button';
+    btn.textContent = 'Create Postcard';
+    btn.addEventListener('click', () => {
+        const postcardUrl = `https://sweetpost.art/create?museum=${item.museumShortcode}&object_id=${item.objectId}`;
+        window.open(postcardUrl, '_blank');
+    });
+    return btn;
+}
+
+// Build a <tr> for a stored artwork (history entry or favorite).
+// options.showTime  - add a "Viewed" timestamp cell
+// options.onRemove  - if given, add a Remove button calling onRemove(item)
+function buildArtworkRow(item, options = {}) {
+    const row = document.createElement('tr');
+
+    // Thumbnail
+    const thumbCell = document.createElement('td');
+    if (item.imgPath) {
+        const thumbLink = document.createElement('a');
+        thumbLink.href = item.objectURL;
+        thumbLink.target = '_blank';
+        thumbLink.rel = 'noopener';
+        const thumb = document.createElement('img');
+        thumb.className = 'fav-thumb';
+        thumb.src = item.imgPath;
+        thumb.alt = item.title || '';
+        thumb.loading = 'lazy';
+        thumbLink.appendChild(thumb);
+        thumbCell.appendChild(thumbLink);
+    }
+    row.appendChild(thumbCell);
+
+    // Title (+ public domain badge)
+    const titleCell = document.createElement('td');
+    const titleLink = document.createElement('a');
+    titleLink.href = item.objectURL;
+    titleLink.target = '_blank';
+    titleLink.rel = 'noopener';
+    titleLink.className = 'history-link';
+    titleLink.textContent = item.title;
+    titleCell.appendChild(titleLink);
+    if (item.is_public_domain) {
+        const pdBadge = document.createElement('span');
+        pdBadge.className = 'pd-badge';
+        pdBadge.textContent = 'PD';
+        pdBadge.title = 'Public Domain';
+        titleCell.appendChild(pdBadge);
+    }
+    row.appendChild(titleCell);
+
+    // Artist
+    const artistCell = document.createElement('td');
+    artistCell.textContent = item.artist || 'Unknown';
+    row.appendChild(artistCell);
+
+    // Museum
+    const museumCell = document.createElement('td');
+    museumCell.textContent = item.museum;
+    row.appendChild(museumCell);
+
+    // Viewed timestamp
+    if (options.showTime) {
+        const timeCell = document.createElement('td');
+        timeCell.className = 'time-cell';
+        timeCell.textContent = item.timestamp;
+        row.appendChild(timeCell);
+    }
+
+    // Actions
+    const actionCell = document.createElement('td');
+    const canPostcard = item.is_public_domain && item.museumShortcode && item.objectId;
+    if (canPostcard) {
+        actionCell.appendChild(createPostcardButton(item));
+    }
+    if (options.onRemove) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-button';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => options.onRemove(item));
+        actionCell.appendChild(removeBtn);
+    }
+    if (!canPostcard && !options.onRemove) {
+        actionCell.textContent = '-';
+        actionCell.className = 'no-action';
+    }
+    row.appendChild(actionCell);
+
+    return row;
+}

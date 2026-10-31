@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Tab New Art - History</title>
+    <script src="browser-polyfill.js"></script>
+    <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+    <h1>New Tab New Art - History</h1>
+
+    <nav class="page-nav">
+        <a href="options.html">⚙ Settings</a>
+        <a href="favorites.html">★ Favorites</a>
+        <a href="history.html" class="current">⏱ History</a>
+        <span class="nav-spacer"></span>
+        <a href="newpage.html">← View random art</a>
+    </nav>
+
+    <h2>Recently Viewed Artworks</h2>
+    <p class="intro">Your last 10 viewed artworks</p>
+    <button class="clear-history" id="clearHistoryBtn">Clear History</button>
+
+    <div id="status" class="status">History cleared.</div>
+
+    <div id="emptyHistory" class="empty-message" style="display: none;">
+        No artworks viewed yet. Open a new tab to start exploring!
+    </div>
+
+    <table id="historyTable" class="artwork-table" style="display: none;">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Museum</th>
+                <th>Viewed</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="historyTableBody"></tbody>
+    </table>
+
+    <script src="pages-common.js"></script>
+    <script src="history.js"></script>
+</body>
+</html>

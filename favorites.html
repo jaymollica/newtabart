@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Tab New Art - Favorites</title>
+    <script src="browser-polyfill.js"></script>
+    <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+    <h1>New Tab New Art - Favorites</h1>
+
+    <nav class="page-nav">
+        <a href="options.html">⚙ Settings</a>
+        <a href="favorites.html" class="current">★ Favorites</a>
+        <a href="history.html">⏱ History</a>
+        <span class="nav-spacer"></span>
+        <a href="newpage.html">← View random art</a>
+    </nav>
+
+    <h2>Favorite Artworks</h2>
+    <p class="intro">Artworks you've starred. Click "☆ Favorite" on any new tab to add one here.</p>
+
+    <div id="emptyFavorites" class="empty-message" style="display: none;">
+        No favorites yet. Star an artwork from a new tab to save it here.
+    </div>
+
+    <table id="favoritesTable" class="artwork-table" style="display: none;">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Museum</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="favoritesTableBody"></tbody>
+    </table>
+
+    <script src="pages-common.js"></script>
+    <script src="favorites.js"></script>
+</body>
+</html>

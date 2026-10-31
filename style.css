@@ -45,7 +45,7 @@ body.dark-mode .captionContainer .description a {
   color: #ff6666;
 }
 
-body.dark-mode #settingsLink {
+body.dark-mode .footerLink {
   color: #ff6666;
 }
 
@@ -191,9 +191,15 @@ a {
     .captionContainer .postcardContainer .postcardButton:active {
       background-color: #aa2222; }
 
-#settingsLink {
-  display: inline-block;
+.captionContainer .footerLinks {
   margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.footerLink {
+  display: inline-block;
   font-size: 0.8rem;
   color: red;
   text-decoration: none;
@@ -201,7 +207,7 @@ a {
   transition: opacity 0.2s ease;
 }
 
-#settingsLink:hover {
+.footerLink:hover {
   opacity: 1;
   text-decoration: underline;
 }
