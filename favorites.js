@@ -30,17 +30,14 @@ function displayFavorites(favorites) {
     favoritesTable.style.display = 'table';
     favorites.forEach((item) => {
         favoritesTableBody.appendChild(buildArtworkRow(item, {
-            onRemove: () => removeFavorite(item.objectURL)
+            favorite: true,
+            // Leave the row in place after un-starring so a slip can be
+            // undone; the periodic refresh drops it a few seconds later.
+            onFavoriteToggled: (nowFavorite) => {
+                if (nowFavorite) return;
+                lastFavoritesJSON = null;
+            }
         }));
-    });
-}
-
-function removeFavorite(objectURL) {
-    browserAPI.storage.local.get(['museumArtFavorites'], (result) => {
-        const favorites = (result.museumArtFavorites || []).filter(item => item.objectURL !== objectURL);
-        browserAPI.storage.local.set({ museumArtFavorites: favorites }, () => {
-            loadFavorites();
-        });
     });
 }
 

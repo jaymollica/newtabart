@@ -70,6 +70,62 @@ function exportJSON(baseName, data) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ---- Favorites ----
+
+const FAVORITES_KEY = 'museumArtFavorites';
+
+// Add or remove `item` in the stored favorites list, keyed by objectURL.
+// Always re-reads storage first so a toggle from this page never clobbers
+// a favorite added from another tab. Calls callback(nowFavorite).
+function toggleStoredFavorite(item, callback) {
+    browserAPI.storage.local.get([FAVORITES_KEY], (result) => {
+        let favorites = result[FAVORITES_KEY] || [];
+        const exists = favorites.some(fav => fav.objectURL === item.objectURL);
+        if (exists) {
+            favorites = favorites.filter(fav => fav.objectURL !== item.objectURL);
+        } else {
+            favorites.unshift({
+                title: item.title,
+                artist: item.artist || '',
+                museum: item.museum,
+                objectURL: item.objectURL,
+                imgPath: item.imgPath,
+                objectDate: item.objectDate || '',
+                is_public_domain: item.is_public_domain,
+                museumShortcode: item.museumShortcode,
+                objectId: item.objectId,
+                timestamp: new Date().toLocaleString()
+            });
+        }
+        browserAPI.storage.local.set({ [FAVORITES_KEY]: favorites }, () => {
+            if (callback) callback(!exists);
+        });
+    });
+}
+
+// A star button that favorites/unfavorites `item` in place.
+function createFavoriteToggle(item, isFavorite, onToggled) {
+    const btn = document.createElement('button');
+    btn.className = 'star-button';
+    const render = (fav) => {
+        btn.textContent = fav ? '★' : '☆';
+        btn.classList.toggle('is-favorite', fav);
+        btn.title = fav ? 'Remove from favorites' : 'Add to favorites';
+        btn.setAttribute('aria-label', btn.title);
+        btn.setAttribute('aria-pressed', String(fav));
+    };
+    render(isFavorite);
+    btn.addEventListener('click', () => {
+        btn.disabled = true;
+        toggleStoredFavorite(item, (nowFavorite) => {
+            render(nowFavorite);
+            btn.disabled = false;
+            if (onToggled) onToggled(nowFavorite, item);
+        });
+    });
+    return btn;
+}
+
 // ---- Artwork table rows ----
 
 function createPostcardButton(item) {
@@ -84,10 +140,20 @@ function createPostcardButton(item) {
 }
 
 // Build a <tr> for a stored artwork (history entry or favorite).
-// options.showTime  - add a "Viewed" timestamp cell
-// options.onRemove  - if given, add a Remove button calling onRemove(item)
+// options.favorite          - true/false: add a star toggle cell in that state
+// options.onFavoriteToggled - called as (nowFavorite, item) after a toggle
+// options.showTime          - add a "Viewed" timestamp cell
+// options.onRemove          - if given, add a Remove button calling onRemove(item)
 function buildArtworkRow(item, options = {}) {
     const row = document.createElement('tr');
+
+    // Favorite star
+    if (typeof options.favorite === 'boolean') {
+        const starCell = document.createElement('td');
+        starCell.className = 'star-cell';
+        starCell.appendChild(createFavoriteToggle(item, options.favorite, options.onFavoriteToggled));
+        row.appendChild(starCell);
+    }
 
     // Thumbnail
     const thumbCell = document.createElement('td');

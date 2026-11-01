@@ -248,6 +248,43 @@ body.dark-mode .select-input {
     margin-top: 10px;
 }
 
+/* Favorite star toggle */
+.artwork-table .star-cell {
+    width: 32px;
+    padding-right: 0;
+    text-align: center;
+}
+.star-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #aaa;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.1s ease;
+}
+.star-button:hover {
+    color: #ff4444;
+}
+.star-button:active {
+    transform: scale(0.9);
+}
+.star-button.is-favorite {
+    color: #ff4444;
+}
+.star-button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+body.dark-mode .star-button {
+    color: #666;
+}
+body.dark-mode .star-button:hover,
+body.dark-mode .star-button.is-favorite {
+    color: #ff6666;
+}
+
 /* Buttons */
 .postcard-button,
 .remove-button,

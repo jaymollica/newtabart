@@ -355,8 +355,10 @@ class MuseumArtApp {
             button.toggleClass('is-favorite', fav);
         };
         update();
-        button.on('click', () => {
-            this.toggleFavorite(data);
+        button.on('click', async () => {
+            button.prop('disabled', true);
+            await this.toggleFavorite(data);
+            button.prop('disabled', false);
             update();
         });
         const favoriteContainer = $('<p class="favoriteContainer"></p>');
@@ -368,7 +370,10 @@ class MuseumArtApp {
         return (this.favorites || []).some(item => item.objectURL === objectURL);
     }
 
-    toggleFavorite(data) {
+    async toggleFavorite(data) {
+        // Re-read storage first: favorites can also change from the
+        // history/favorites pages while this tab is open.
+        await this.loadFavorites();
         if (!this.favorites) this.favorites = [];
         if (this.isFavorite(data.objectURL)) {
             this.favorites = this.favorites.filter(item => item.objectURL !== data.objectURL);

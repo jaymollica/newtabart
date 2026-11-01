@@ -3,14 +3,15 @@
 let lastHistoryJSON = null;
 
 function loadHistory() {
-    browserAPI.storage.local.get(['museumArtHistory'], (result) => {
-        displayHistory(result.museumArtHistory || []);
+    browserAPI.storage.local.get(['museumArtHistory', 'museumArtFavorites'], (result) => {
+        displayHistory(result.museumArtHistory || [], result.museumArtFavorites || []);
     });
 }
 
-function displayHistory(history) {
+function displayHistory(history, favorites) {
     // Skip rebuilding (and re-fetching thumbnails) when nothing changed.
-    const json = JSON.stringify(history);
+    const favoriteURLs = new Set(favorites.map(item => item.objectURL));
+    const json = JSON.stringify([history, [...favoriteURLs]]);
     if (json === lastHistoryJSON) return;
     lastHistoryJSON = json;
 
@@ -29,7 +30,12 @@ function displayHistory(history) {
     emptyHistory.style.display = 'none';
     historyTable.style.display = 'table';
     history.forEach((item) => {
-        historyTableBody.appendChild(buildArtworkRow(item, { showTime: true }));
+        historyTableBody.appendChild(buildArtworkRow(item, {
+            showTime: true,
+            favorite: favoriteURLs.has(item.objectURL),
+            // Force the next refresh to pick up the new favorites set.
+            onFavoriteToggled: () => { lastHistoryJSON = null; }
+        }));
     });
 }
 
